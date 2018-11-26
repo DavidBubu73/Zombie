@@ -1,0 +1,573 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+void clean(char sys);
+
+void mapa(char p[101][101], int n, int m);
+
+void impmapa(char p[101][101], int n, int m);
+
+void Mano(int *n, int *m, int *x, int *y, char p[101][101], char *menu, char *sys, double *z, double *t, double *k);
+
+void expansion(double, double, char[101][101], double, int, int, int, int);
+
+void memoria(double zombie[101][101], int n, int m, int i, int j, double, double);
+
+void busqueda_presidencial(double presidente[101][101], int n, int m, int i, int j, double t, double cont);
+
+int tam(char[1001]);
+
+void Lectura(char dir[1001], int *np, int *mp, int *x, int *y, char p[101][101], char *menu, char *sys, double *z, double *t, double *k);
+
+typedef struct
+{
+    int x;
+    int y;
+    double m;
+
+}minimo;
+
+//Variable global para que inicie en 0's.
+double  zombie[101][101], presidente[101][101];
+minimo mini;
+int boolita;
+
+int main()
+{
+    //Declaración de las variables
+    int n = -1, m, x, y, cont = 0;
+    char p[101][101], copia[101][101], menu, sys = 'W', enter, dir[1001];
+    double t, k, z;
+    mini.m = 100000000;
+    FILE *sistema, *g;
+
+    //Esto es para conocer el sistema operativo
+    /*
+    printf("Antes que nada, necesitamos saber tu sistema operativo. Escribe W si es windows sino escribe otra letra: \n");
+    scanf("%c", &sys);
+    scanf("%c", &menu);
+    clean(sys);
+*/
+    sistema = fopen("C:\\Windows\\ZombieProyectoFinal.txt", "w");
+
+    if(sistema == NULL)
+        sys = 'L';
+    else
+    {
+        remove("C:\\Windows\\ZombieProyectoFinal.txt");
+        sys = 'W';
+    }
+
+    fclose(sistema);
+
+    printf("%cMenu de inicio\n", 219);
+    printf("%cDesea observar el caso ejemplo? Escriba 'S' si es asi, sino escriba 'N'\n", 168);
+    scanf("%c", &menu);
+
+    if(menu == 's' || menu == 'S')
+    {
+        clean(sys);
+        Lectura("Casos\\Caso1.txt", &n, &m, &x, &y, p, &menu, &sys, &z, &k, &t);
+        if(n == -1)
+        {
+            printf("Ha ocurrido un error con la ubicacion de tu archivo, vuelve a intentarlo");
+            return 1;
+        }
+        printf("\tTu caso es: \n");
+
+        printf("%d %d \n", n, m);
+
+        impmapa(p, n, m);
+
+        printf("%d %d\n%.3lf %.3lf\n%.3lf\n", x, y, z, t, k);
+    }
+    else
+    {
+        printf("%cComo desea que leamos los datos? \n1- Si es desde un archivo escriba.\n2- si es a mano\n", 168);
+        scanf("%c", &menu);
+
+        if(menu == '\n')
+            scanf("%c", &menu);
+
+        if(menu == '1')
+        {
+            scanf("%c", &enter);
+            clean(sys);
+            printf("Ingrese la direccion de su caso, es decir, en donde esta guardado: \n");
+
+            gets(dir);
+
+            /*for(int i = 0; i < strlen(dir); i++)
+            {
+                printf("%c", dir[i]);
+            }*/
+
+            Lectura(dir, &n, &m, &x, &y, p, &menu, &sys, &z, &k, &t);
+            clean(sys);
+
+            printf("\tTu caso es: \n");
+
+            printf("%d %d \n", n, m);
+
+            impmapa(p, n, m);
+
+            printf("%d %d\n%.3lf %.3lf\n%.3lf\n", x, y, z, t, k);
+        }
+        else
+        {
+            scanf("%c", &enter); //Ignorar el space
+
+            printf("%cDesea guardar su caso como un caso ejemplo? Escriba S o N\n", 168);
+            scanf("%c", &menu);
+
+            Mano(&n, &m, &x, &y, p, &menu, &sys, &z, &k, &t);
+
+            if(menu == 'S' || menu == 's')
+            {
+                scanf("%c", &enter);
+                clean(sys);
+                printf("Ingrese el nombre del archivo donde va a guardar su caso: \n");
+                char nombre[1001];
+                for(int i = 0; 1; i++)
+                {
+                    scanf("%c", &nombre[i]);
+                    if(nombre[i] == '\n')
+                        break;
+                }
+
+                int tamano = tam(nombre);
+                /*printf("%d\n", tamano);
+                for(int i = 0; i < tamano; i++)
+                {
+                    printf("%c", nombre[i]);
+                    if(nombre[i] == '\n')
+                    {
+                        printf("Oye bro");
+                    }
+                }*/
+
+                char direccion[1001] = "Casos\\Usuario\\";
+
+                for(int i = 0; i < tamano; i++)
+                {
+                    direccion[i + 14] = nombre[i];
+                }
+
+                direccion[tamano + 14] = '.';
+                direccion[tamano + 15] = 't';
+                direccion[tamano + 16] = 'x';
+                direccion[tamano + 17] = 't';
+
+                /*for(int i = 0; i < 20 + tamano; i++)
+                    printf("%c", direccion[i]);
+*/
+                g = fopen(direccion, "wt");
+
+                fprintf(g, "%d %d\n", n, m);
+
+                for(int i = 0; i < n; i++)
+                {
+                    for(int j = 0; j < m; j++)
+                    {
+                        fprintf(g, "%c", p[i][j]);
+                    }
+                    putc('\n', g);
+                }
+
+                fprintf(g, "%d %d\n%.2lf %.2lf\n%.2lf", x, y, z, t, k);
+
+                printf("\nRecuerda que tu caso se guardara en la carpeta 'Usuario' que esta dentro de la carpeta 'Casos'\n");
+
+                fclose(g);
+            }
+        }
+    }
+
+    system("pause");
+
+    clean(sys);
+
+    mini.x = x;
+    mini.y = y;
+
+    for(int i = 0; i < n; i++)
+    {
+        for(int j = 0 ; j < m; j++)
+        {
+            if(p[i][j] == '#')
+                zombie[i][j] = 1;
+            if(p[i][j] == 'X')
+                zombie[i][j] = -1;
+        }
+    }
+
+    //En esta sección se soluciona a la primera tarea:
+
+    printf("Solucion a la tarea 1 del presidente: \n");
+
+    for(int i = 0; i < n; i++)
+    {
+        for(int j = 0 ; j < m; j++)
+        {
+            if(p[i][j] == '#')
+            {
+                expansion(z, k, p, 0, i, j, n, m);
+            }
+        }
+    }
+
+    for(int i = 0; i < n; i++)
+    {
+        for(int j = 0 ; j < m; j++)
+        {
+            if(p[i][j] == '$')
+            {
+                p[i][j] = '#';
+            }
+        }
+    }
+
+
+    for(int i = 0; i < n; i++)
+    {
+        for(int j = 0 ; j < m; j++)
+        {
+            if(p[i][j] == '#')
+            {
+                cont++;
+            }
+        }
+    }
+
+    printf("%d Ciudades infectadas y el mapa es: \n", cont);
+
+    impmapa(p, n, m);
+
+    system("pause");
+    clean(sys);
+
+
+    //Esta sección del código soluciona la segunda tarea:
+
+    printf("Solucion a la tarea 2 del presidente: \n");
+
+
+    for(int i = 0; i < n; i++)
+    {
+        for(int j = 0 ; j < m; j++)
+        {
+            if(p[i][j] == '#')
+            {
+                expansion(z, n * m, p, 0, i, j, n, m);
+            }
+        }
+    }
+
+    for(int i = 0; i < n; i++)
+    {
+        for(int j = 0 ; j < m; j++)
+        {
+            if(p[i][j] == '$')
+            {
+                p[i][j] = '#';
+            }
+        }
+    }
+
+    cont = 0;
+
+    for(int i = 0; i < n; i++)
+    {
+        for(int j = 0 ; j < m; j++)
+        {
+            if(p[i][j] == 'C')
+            {
+                cont++;
+            }
+            presidente[i][j] = -1;
+        }
+    }
+
+    printf("%d Ciudades se salvan y el mapa es: \n", cont);
+
+    impmapa(p, n, m);
+
+    system("pause");
+    clean(sys);
+
+    //La siguiente parte del código resuelve la tarea numero 3 del presidente
+
+    printf("Solucion a la tarea 3 del presidente: \n");
+
+
+    for(int i = 0; i < n; i++)
+    {
+        for(int j = 0; j < m; j++)
+        {
+            if(zombie[i][j] == 1)
+            {
+                memoria(zombie, n, m, i, j, 1, z);
+            }
+        }
+    }
+
+    if(zombie[x][y] == -1)
+    {
+        printf("No es alcanzado por los zombies, sin embargo esta en un oceano, o sea que muere cuando la gasolina se acabe.\n");
+    }
+    else
+    {
+        if(zombie[x][y] == 0)
+        {
+            printf("El senor presidente esta a salvo justo donde esta.\n");
+            boolita = 1;
+        }
+        else
+            printf("%.2lf horas.\n", zombie[x][y] - 1);
+        if(zombie[x][y] == 1)
+        {
+            printf("De hecho el presidente ya es un zombie\n");
+            boolita = 3;
+        }
+    }
+
+    //Esto es una ayuda a observar que tal va la cuenta de las ciudades zombie
+
+
+    /*for(int i = 0; i < n; i++)
+    {
+        for(int j = 0; j < m; j++)
+        {
+            printf("%.0lf ", zombie[i][j]);
+        }
+        printf("\n");
+    }*/
+
+
+    system("pause");
+    clean(sys);
+
+
+    //La siguiente parte del código resuelve la cuarta y más difícil tarea del presidente:
+
+    if(zombie[x][y] - 1 <= t && p[mini.x][mini.y] == '#')
+    {
+        printf("El presidente no puede llegar a ninguna ciudad, se va a morir.\n");
+        return 0;
+    }
+
+    busqueda_presidencial(presidente, n, m, x, y, t, 0);
+
+    /* Debugeo
+    for(int i = 0; i < n; i++)
+    {
+        for(int j = 0; j < m; j++)
+        {
+            printf("%.0lf ", presidente[i][j]);
+        }
+        printf("\n");
+    }*/
+
+    if(mini.m != 100000000 && p[mini.x][mini.y] != '#')
+    {
+        printf("Si\nCoordenadas nuevas (%d,%d)\n", mini.x, mini.y);
+    }
+    else
+    {
+        if(mini.m == 100000000 && p[mini.x][mini.y] != '#')
+            printf("El senor presidente se encuentra bien en (%d,%d).", x, y);
+        else
+        {
+            if(boolita == 3)
+            {
+                printf("El presidente ya es un zombie ahora.");
+            }
+            else
+                printf("El presidente no puede llegar a ninguna ciudad, se va a morir.\n");
+
+        }
+    }
+
+    system("pause");
+
+    clean(sys);
+
+    printf("%cDesea hacer otro analisis? Escriba 'S' si es asi, sino cualquier otra letra:\n", 168);
+
+    scanf("%c", &enter);
+    scanf("%c", &enter);
+
+    if(enter == 's' || enter == 'S')
+    {
+        for(int i = 0; i < n; i++)
+        {
+            for(int j = 0; j < m; j++)
+            {
+                zombie[i][j] = 0;
+                presidente[i][j] = 0;
+            }
+        }
+        boolita = false;
+        scanf("%c", &menu);
+        clean(sys);
+        return main();
+    }
+
+return 0;
+}
+
+
+void busqueda_presidencial(double presidente[101][101], int n, int m, int i, int j, double t, double cont)
+{
+    if(i < 0 || j < 0 || i >= n || j >= m || (presidente[i][j] <= cont && presidente[i][j] != -1) || (cont >= zombie[i][j] - 1 && zombie[i][j] > 0))
+        return;
+    if(boolita)
+        return;
+
+    presidente[i][j] = cont;
+
+    if(zombie[i][j] == 0 && mini.m > cont)
+    {
+        mini.m = cont;
+        mini.x = i;
+        mini.y = j;
+    }
+
+    busqueda_presidencial(presidente, n, m, i + 1, j, t, cont + t);
+    busqueda_presidencial(presidente, n, m, i - 1, j, t, cont + t);
+    busqueda_presidencial(presidente, n, m, i, j + 1, t, cont + t);
+    busqueda_presidencial(presidente, n, m, i, j - 1, t, cont + t);
+}
+
+void memoria(double zombie[101][101], int n, int m, int i, int j, double cont, double z)
+{
+    if(i < 0 || j < 0 || i >= n || j >= m || zombie[i][j] == -1 || (cont > zombie[i][j] && zombie[i][j] != 0))
+        return;
+
+    zombie[i][j] = cont;
+
+    memoria(zombie, n, m, i + 1, j, cont + z, z);
+    memoria(zombie, n, m, i - 1, j, cont + z, z);
+    memoria(zombie, n, m, i, j + 1, cont + z, z);
+    memoria(zombie, n, m, i, j - 1, cont + z, z);
+
+}
+
+void expansion(double z, double k, char p[101][101], double cont, int i, int j, int n, int m)
+{
+    //printf("%lf %lf %lf %d %d %d %d \n", z, k, cont, i, j, n, m);
+    if((cont > k) || (p[i][j] == 'X') || (p[i][j] == '$' && cont != 0) || (i < 0) || (j < 0) || (i >= n) || (j >= m))
+        return;
+
+    p[i][j] = '$';
+
+    expansion(z, k, p, cont + z, i + 1, j, n, m);
+    expansion(z, k, p, cont + z, i - 1, j, n, m);
+    expansion(z, k, p, cont + z, i, j + 1, n, m);
+    expansion(z, k, p, cont + z, i, j - 1, n, m);
+
+}
+
+void clean(char sys)
+{
+    if(sys == 'W' || sys == 'w')
+        system("cls");
+    else
+        system("clean");
+}
+
+void mapa(char p[101][101], int n, int m)
+{
+    //Leer una matriz
+    for(int i = 0; i < n; i++)
+    {
+        for(int j = 0; j < m; j++)
+        {
+            scanf("%c", &p[i][j]);
+            //Ignorar el "enter" de los carácteres
+            if(p[i][j] == '\n')
+                j--;
+        }
+    }
+}
+
+void impmapa(char p[101][101], int n, int m)
+{
+    //Imprimir una matriz
+    for(int i = 0; i < n; i++)
+    {
+        for(int j = 0; j < m; j++)
+        {
+            printf("%c", p[i][j]);
+        }
+        printf("\n");
+    }
+}
+
+
+void Mano(int *n, int *m, int *x, int *y, char p[101][101], char *menu, char *sys, double *z, double *t, double *k)
+{
+    clean(*sys);
+    //Pidiendo los datos
+    printf("Ingrese la cantidad de filas y columnas separadas por un espacio representando el mapa: ");
+    scanf("%d%d", n, m);
+
+    printf("Ingrese la forma del mapa: \n");
+    mapa(p, *n, *m);
+
+    printf("Ahora ingrese los valores de las coordenadas del presidente, primero X y luego Y: ");
+    scanf("%d%d", x, y);
+
+    printf("Ahora ingrese el tiempo que le toma al virus multiplicarse: ");
+    scanf("%lf", z);
+
+    printf("Ahora ingrese el tiempo que le toma al jet del presidente pasar de una casilla a otra: ");
+    scanf("%lf", t);
+
+    printf("Por ultimo ingrese el tiempo que desea analizar: ");
+    scanf("%lf", k);
+}
+
+void Lectura(char dir[1001], int *np, int *mp, int *x, int *y, char p[101][101], char *menu, char *sys, double *z, double *t, double *k)
+{
+    char aux;
+    FILE *l;
+    l = fopen(dir, "rt");
+
+    if(l == NULL)
+    {
+        //printf("No pase we \n");
+        return;
+    }
+
+    fscanf(l, "%d %d\n", np, mp);
+
+    int a = 0, b = 0;
+
+    for(int i = 0; i < *np; i++)
+    {
+        for(int j = 0; j < *mp; j++)
+        {
+            fscanf(l, "%c", &p[i][j]);
+            if(p[i][j] == '\n')
+                j--;
+        }
+    }
+
+    fscanf(l, "%d %d\n%lf %lf\n%lf", x, y, z, t, k);
+
+    fclose(l);
+
+
+   // printf("\n%d %d\n", *np, *mp);
+
+}
+
+int tam(char p[1001])
+{
+    int i = 0;
+    while(p[i] != '\n')
+        i++;
+    return i;
+}
