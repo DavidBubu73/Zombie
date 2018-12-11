@@ -120,15 +120,19 @@ int main()
             //Este sistem("pause") le da el tiempo necesario al usuario para analizar el caso que escogió.
             //De hecho le da el tiempo que el usuario decida.
             system("pause");
-            
-            //Aquí se indica que si el caso es aleatorio, el usuario puede guardarlo en una carpeta específica.
+
+            //Aquí se indica que si el caso es aleatorio, el usuario puede guardarlo en la carpeta de Usuario.
             if(menu == 4)
             {
-                printf("Escriba:\n1.Si desea guardar este caso en la carpeta \"Aleatorio\"\nSi no, cualquier otro numero");
-                scanf("%d", &menu); //Escogi esta variable para no crear una nueva, fue arbitrario.
+                system("cls");
+                printf("Escriba:\n1.Si desea guardar este caso en la carpeta \"Usuario\"\nSi no, cualquier otro numero.\n");
+                scanf("%d", &menu); //Escogí esta variable para no crear una nueva, fue arbitrario.
                 if(menu == 1)
                 {
-                    Save();
+                    if(Save(&n, &m, &x, &y, &z, &a, &k) == 1)
+                    {
+                        return 0;
+                    }
                 }
             }
 
@@ -237,6 +241,24 @@ int main()
             //zombies se reproducen a distinta velocidad que el avión se mueve, no necesariamente tiene que ser mayor la
             //velocidad del avión.
 
+            if(mapad[x][y] == 0.0)
+            {
+                ciclo = -1;
+                printf("El presidente ya es un zombie, no hay nada que hacer.\n");
+            }
+
+        //Esto es para ayudar a resolver bugs.
+            /*for(int i = 0; i < n; i++)
+            {
+                for(int j = 0; j < m; j++)
+                {
+                    printf("%lf ", mapad[i][j]);
+                }
+                printf("\n");
+            }
+
+            system("pause");
+*/
             Expansion_Presidencial(x, y, n, m, a, a, &mini);
 
             mini.m = mini.m - a; //Le descontamos uno porque inicializamos la casilla del presidente en "a" y no en 0.
@@ -244,10 +266,14 @@ int main()
 
             //Checamos que el presidente si puede llegar a algún lugar seguro.
 
-            if(mini.m == 100000000 - a && mapa[x][y] == '#')
+            if((mini.m == 100000000 - a && mapa[x][y] == '#'))
                 printf("El presidente no puede llegar a ninguna ciudad, se va a morir.\n");
             else
-                printf("El Senor Presidente tiene que ir a las coordenadas (%d, %d) al que puede llegar en %lf horas:\n", mini.x, mini.y, mini.m);
+                if(ciclo != -1)
+                    if(mini.m != 0.0)
+                        printf("El Senor Presidente tiene que ir a las coordenadas (%d, %d) al que puede llegar en %lf horas:\n", mini.x, mini.y, mini.m);
+                    else
+                        printf("Quedese justo donde esta Senor Presidente.\n");
 
             system("pause");
             system("cls");
@@ -398,77 +424,8 @@ int Manual(int *n, int *m, int *x, int *y, double *z, double *a, double *k)
     printf("Ingrese la cantidad K de tiempo que desea analizar el senor presidente:\n");
     scanf("%lf", k);
 
-    //Ahora le pediremos el nombre de su archivo.
-
-    while(1) //Es un ciclo por si es que el usuario introduce un nombre ya existente
-    {
-        system("cls");
-        //Después de tener todos los datos ahora tenemos que guardar el caso.
-        printf("Ahora ingrese el nombre con el que desea guardar su caso.\nRecuerde que su nombre no tiene que sobrepasar los 30 caracteres y que estara en la carpeta \"Usuario\"");
-        printf("\nNo es necesaria la extension .txt.\n");
-
-        char direccion2[50] = "Usuario\\"; //Creamos un string nuevo que nos va a "auxiliar" creandose y destruyendose en cada iteración.
-                                            //Empezamos a "armar" la dirección del archivo.
-        scanf("%s", aux); //Pedimos el nombre del archivo.
-
-        strcat(direccion2, aux);
-        strcat(direccion2, ".txt"); //Le agregamos .txt para que sea de tipo texto.
-
-        strcpy(direccion, direccion2); //Y se la mandamos a direccion para que tenga la dirección de lo que queremos trabajar.
-
-        fd = fopen(direccion2, "r"); //Vemos si existe una dirección como la escrita.
-
-        if(fd != NULL) //Si ya existe esa direción entonces el "fd" no nos devolverá NULL, sino un puntero.
-        {
-            int decision;
-            printf("Ese nombre ya existe, escriba: \n1.Si quiere reemplazar el caso.\n2.Si quiere volver a escribir el caso.\n");
-            scanf("%d", &decision);
-            if(decision == 1)
-            {
-                break;
-            }
-            fclose(fd);
-        }
-        else
-            break;
-    }
-
-    fclose(fd); //Cerramos el archivo para abrir uno nuevo con tipo escritura en la dirección escrita.
-
-    fd = fopen(direccion, "w+");
-
-    if(fd == NULL)
-    {
-        printf("Hubo un error con la creacion de su archivo intentelo de nuevo.\n");
-        system("pause");
-        fclose(fd);
-        return 1;
-    }
-
-    //Usando el fprintf de manera adecuada podemos escribir sobre el archivo que acabamos de abrir para así
-    //poner el texto en un archivo .txt
-
-    fprintf(fd, "%d %d\n", *n, *m);
-
-    for(int i =  0; i < *n; i++)
-    {
-        for(int j = 0; j < *m; j++)
-        {
-            fprintf(fd, "%c", mapa[i][j]);
-        }
-        fprintf(fd, "\n");
-    }
-
-    fprintf(fd, "%d %d\n%lf %lf\n%lf", *x, *y, *z, *a, *k);
-
-    system("cls");
-
-    printf("Tu caso fue guardado con exito.\n");
-
-    system("pause");
-
-    fclose(fd);
-    return 0;
+    //Ahora guardaremos:
+    return Save(&n, &m, &x, &y, &z, &a, &k);
 }
 
 void Variables(int *n, int *m, int *x, int *y, double *z, double *a, double *k, FILE *fd)
@@ -540,7 +497,7 @@ void ImprimeMapa(int n, int m)
     }
 
 
-    /*printf("\n\n");
+   /* printf("\n\n");
 
     for(int i = 0; i < n; i++)
     {
@@ -568,7 +525,7 @@ void Expansion_Zombie(int x, int y, int n, int m, double z, double cont, double 
         return;                                        //Y detecta también si el contador "cont"  excede el tiempo "k".
     if(mapa[x][y] == 'X') //--->Detecta si está en un oceano.
         return;
-    if(mapa[x][y] == '$' && cont > mapad[x][y])//--->Detecta que no se haya pasado por ahí anteriormente.
+    if((mapa[x][y] == '$' || (mapa[x][y] == '#' && cont != 0)) && cont > mapad[x][y])//--->Detecta que no se haya pasado por ahí anteriormente.
         return;                                 //Y aparte que ese sea el camino más corto para llegar esa casilla.
     if(mapad[x][y] < cont && mapad[x][y] != -1) //--->Detecta si hay un camino más corto por el cual pueda reproducirse el
         return;                                  //virus zombie, si no lo hay es porque mapad[x][y] es menor que cualquier
@@ -653,7 +610,7 @@ int Aleatorio(int *n, int *m, int *x, int *y, double *z, double *a, double *k)
     srand(time(NULL));
 
     system("cls");
-    printf("Por favor, escriba el limite inferior del randomizador, es decir, cual es el numero minimo que pueden tener las variables:\n(Tiene que ser minimo 1.)\n");
+    printf("Por favor, escriba el limite inferior del randomizador, es decir, cual es el numero minimo que pueden tener las variables:\n(Tiene que ser minimo 1)\n");
     scanf("%d", &r);
     printf("Ahora por favor, escriba el limite superior:\n(Tiene que ser maximo 100)\n");
     scanf("%d", &R);
@@ -661,15 +618,27 @@ int Aleatorio(int *n, int *m, int *x, int *y, double *z, double *a, double *k)
     //Asignando números aleatorio a los enteros.
     *n = r + rand()%(R + 1 - r);
     *m = r + rand()%(R + 1 - r);
-    *x = r + rand()%(R + 1 - r);
-    *y = r + rand()%(R + 1 - r);
+    //Las coordenadas tienen que estar dentro de los límites de n y m.
+    *x = r + rand()%(*n + 1 - r);
+    *y = r + rand()%(*m + 1 - r);
+
+    //Para solucionar algunos errores.
+    if(*x >= *n)
+        *x = *n - 1;
+    if(*y >= *m)
+        *y = *m - 1;
+
+    //Esta parte es solo para checar errores.
+    //printf("%d %d %d %d\n", *n, *m, *x, *y);
 
 
-    //Asignando números aleatorio a los reales.
-    *z = (r + rand()%(R + 1 - r))/100.0;
-    *a = (r + rand()%(R + 1 - r))/100.0;
-    *k = (r + rand()%(R + 1 - r))/100.0;
-
+    //Asignando números aleatorio a los reales. Ya que no supimos como se generan de una manera más aleatoria nosotros le pusimos
+    //una relación con las otras variables aleatorias, así tecnicamente son aleatorios pero no del todo porque dependen de las
+    //variables anteriores.
+    *z = (double) *n / (double) *m;
+    *a = (double) *x / (double) *y;
+    //printf("%lf %lf\n", *z, *a);
+    *k = (double) *z / (double) *a;
 
     //Una vez teniendo los datos de n y m ya podemos saber cuanta memoria solicitar para las matrices.
     mapa = (char**)malloc(sizeof(char*)*(*n));
@@ -694,19 +663,22 @@ int Aleatorio(int *n, int *m, int *x, int *y, double *z, double *a, double *k)
     {
         for(int j = 0 ; j < *m; j++)
         {
-            int aux = 1 + rand()%(3);
+            int aux = 1 + rand()%(6); //Así disminuuimos la probabilidad de que haya tantos zombies.
             switch(aux)
             {
             case 1:
                 mapa[i][j] = 'C';
                 break;
             case 2:
+                mapa[i][j] = 'C';
+                break;
+            case 3:
                 mapa[i][j] = '#';
                 break;
             default:
                 mapa[i][j] = 'X';
             }
-            mapad[i][j] = -1; 
+            mapad[i][j] = -1;
             if(mapa[i][j] == 'C' || mapa[i][j] == '#')
                 mapad[0][0]++;
         }
@@ -714,4 +686,84 @@ int Aleatorio(int *n, int *m, int *x, int *y, double *z, double *a, double *k)
 
     return 0;
 
+}
+
+int Save(int *n, int *m, int *x, int *y, double *z, double *a, double *k)
+{
+    //Ahora le pediremos el nombre de su archivo.
+
+    //Declaramos todo las variables.
+    char aux[50], direccion[50];
+    FILE *fd;
+
+    while(1) //Es un ciclo por si es que el usuario introduce un nombre ya existente
+    {
+        system("cls");
+        //Después de tener todos los datos ahora tenemos que guardar el caso.
+        printf("Ahora ingrese el nombre con el que desea guardar su caso.\nRecuerde que su nombre no tiene que sobrepasar los 30 caracteres y que estara en la carpeta \"Usuario\"");
+        printf("\nNo es necesaria la extension .txt.\n");
+
+        char direccion2[50] = "Usuario\\"; //Creamos un string nuevo que nos va a "auxiliar" creandose y destruyendose en cada iteración.
+                                            //Empezamos a "armar" la dirección del archivo.
+        scanf("%s", aux); //Pedimos el nombre del archivo.
+
+        strcat(direccion2, aux);
+        strcat(direccion2, ".txt"); //Le agregamos .txt para que sea de tipo texto.
+
+        strcpy(direccion, direccion2); //Y se la mandamos a direccion para que tenga la dirección de lo que queremos trabajar.
+
+        fd = fopen(direccion2, "r"); //Vemos si existe una dirección como la escrita.
+
+        if(fd != NULL) //Si ya existe esa direción entonces el "fd" no nos devolverá NULL, sino un puntero.
+        {
+            int decision;
+            printf("Ese nombre ya existe, escriba: \n1.Si quiere reemplazar el caso.\n2.Si quiere volver a escribir el caso.\n");
+            scanf("%d", &decision);
+            if(decision == 1)
+            {
+                break;
+            }
+            fclose(fd);
+        }
+        else
+            break;
+    }
+
+    fclose(fd); //Cerramos el archivo para abrir uno nuevo con tipo escritura en la dirección escrita.
+
+    fd = fopen(direccion, "w+");
+
+    if(fd == NULL)
+    {
+        printf("Hubo un error con la creacion de su archivo intentelo de nuevo.\n");
+        system("pause");
+        fclose(fd);
+        return 1;
+    }
+
+    //Usando el fprintf de manera adecuada podemos escribir sobre el archivo que acabamos de abrir para así
+    //poner el texto en un archivo .txt
+
+    fprintf(fd, "%d %d\n", *n, *m);
+
+    for(int i =  0; i < *n; i++)
+    {
+        for(int j = 0; j < *m; j++)
+        {
+            fprintf(fd, "%c", mapa[i][j]);
+        }
+        fprintf(fd, "\n");
+    }
+
+    fprintf(fd, "%d %d\n%lf %lf\n%lf", *x, *y, *z, *a, *k);
+
+    system("cls");
+
+    printf("Tu caso fue guardado con exito.\n");
+
+    system("pause");
+
+    fclose(fd);
+
+    return 0;
 }
