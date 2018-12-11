@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 //Definición de las funciones.
 
@@ -17,7 +18,7 @@ double ** PedirMemoriadouble(int, int);
 
 void ImprimeMapa(int, int);
 
-void Expansion_Zombie(int, int, int, int, double, double, double, int*);
+void Expansion_Zombie(int x, int y, int n, int m, double z, double cont, double k, int *sum);
 
 typedef struct //Se crea una estructura para poder guardar la posición del presidente y la mínima de tiempo para llegar
 {              //a un lugar seguro. Todo eso compactado en un tipo de variable llamado Presi.
@@ -28,6 +29,7 @@ typedef struct //Se crea una estructura para poder guardar la posición del pres
 
 void Expansion_Presidencial(int, int, int, int, double, double, Presi*);
 
+int Aleatorio(int*, int*, int*, int*, double*, double*, double*);
 
 //Se tuvo que hacer a la variable "mapa" una variable global ya que fue la única manera que encontramos de
 //hacer que el programa funcionara, ya que si la hacíamos local teníamos que pasarla a las demás funciones
@@ -61,7 +63,6 @@ int main()
 
         //Igualación de datos.
         sum = 0;
-        ciudades = 0;
         mini.m = 100000000;
 
         //Indicaciones.
@@ -69,7 +70,8 @@ int main()
         printf("1.Abrir un caso ejemplo como los del reporte.\n");
         printf("2.Abrir uno de sus propios casos.\n");
         printf("3.Crear un caso completamente nuevo y guardarlo.\n");
-        printf("4.Salir del programa.\n");
+        printf("4.Analizar un planeta aleatorio por diversion mientras que los zombies lo comen.\n");
+        printf("5.Salir del programa.\n");
 
         scanf("%d", &menu);
 
@@ -90,6 +92,9 @@ int main()
             ciclo = Manual(&n, &m, &x, &y, &z, &a, &k);
             break;
         case 4:
+            ciclo = Aleatorio(&n, &m, &x, &y, &z, &a, &k);
+            break;
+        case 5:
             return 0;
         default:
             printf("No es posible analizar ese numero, intentelo de nuevo.\n");
@@ -102,8 +107,9 @@ int main()
             //Ahora le tenemos que mostrar al usuario el caso que seleccionó para que lo pueda analizar bien.
             system("cls");
 
-            ciudades = mapad[0][0] + 1;//Aquí recuperamos el número de ciudades que hay en total, el "+ 1" es porque estaba en -1.
-            mapad[0][0] = -1; //Luego le devolvemos su valor de -1 puesto por conveniencia nuestra.
+            ciudades = (int)mapad[0][0] + 1; //Aquí recuperamos el número de ciudades que hay en total, el "+ 1" es porque la cuenta inició en -1.
+                                             //El cast es porque la variable mapad[0][0] es un double.
+            mapad[0][0] = -1.0; //Luego le devolvemos su valor de -1 puesto por conveniencia nuestra.
 
             printf("Tu caso es:\n");
             printf("%d %d\n", n, m);
@@ -114,6 +120,17 @@ int main()
             //Este sistem("pause") le da el tiempo necesario al usuario para analizar el caso que escogió.
             //De hecho le da el tiempo que el usuario decida.
             system("pause");
+            
+            //Aquí se indica que si el caso es aleatorio, el usuario puede guardarlo en una carpeta específica.
+            if(menu == 4)
+            {
+                printf("Escriba:\n1.Si desea guardar este caso en la carpeta \"Aleatorio\"\nSi no, cualquier otro numero");
+                scanf("%d", &menu); //Escogi esta variable para no crear una nueva, fue arbitrario.
+                if(menu == 1)
+                {
+                    Save();
+                }
+            }
 
         //------------------Aquí empiezan los algoritmos para resolver las tareas del presidente------------------//
 
@@ -129,7 +146,7 @@ int main()
                 {
                     if(mapa[i][j] == '#')
                     {
-                        Expansion_Zombie(i, j, n, m, z, 0.0, k, &sum);
+                        Expansion_Zombie(i, j, n, m, z, 0, k, &sum);
                     }
                 }
             }
@@ -206,6 +223,7 @@ int main()
             }
 
             system("pause");
+
             system("cls");
 
 
@@ -229,23 +247,22 @@ int main()
             if(mini.m == 100000000 - a && mapa[x][y] == '#')
                 printf("El presidente no puede llegar a ninguna ciudad, se va a morir.\n");
             else
-                printf("El Senor Presidente tiene que ir a las coordenadas (%d, %d) al que puede llegar en %lf horas si sigue el mapa:\n", mini.x, mini.y, mini.m);
+                printf("El Senor Presidente tiene que ir a las coordenadas (%d, %d) al que puede llegar en %lf horas:\n", mini.x, mini.y, mini.m);
 
             system("pause");
             system("cls");
             printf("Escriba:\n1.Si quiere hacer otro test.\nCualquier otro numero.Si quiere terminar el programa.\n");
             scanf("%d", &ciclo);
+            //Al final se libera la memoria de las matrices para posteriormente volverla a usar si fuese necesario.
+
+            for(int i = 0; i < n; i++)
+                free(mapa[i]);
+            free(mapa);
+
+            for(int i = 0; i < n; i++)
+                free(mapad[i]);
+            free(mapad);
         }
-
-         //Al final se libera la memoria de las matrices para posteriormente volverla a usar si fuese necesario.
-
-        for(int i = 0; i < n; i++)
-            free(mapa[i]);
-        free(mapa);
-
-        for(int i = 0; i < n; i++)
-            free(mapad[i]);
-        free(mapad);
     }
 
 
@@ -266,9 +283,13 @@ int Abrir_Archivo(char dir[50], int *n, int *m, int *x, int *y, double *z, doubl
     //Por alguna razón que desconocemos, la función "strcat" no admite como parámetros el parámetro de esta función
     //(Es decir el parámetro llamado "dir" de la función Abrir_Archivo no es admitida dentro de "strcat").
     //Así que creamos una copia de éste parámetro y la nombramos "aux" para poder así ejecutar la función "strcat"
-    //sin problemas.
-    strcpy(aux, dir);
-
+    //sin problemas, lo utilizaremos sin ninguna función de string.h para evitar problemas.
+    for(int i = 0; 1; i++)
+    {
+        aux[i] = dir[i];
+        if(dir[i] == '\0')
+            break;
+    }
 
     //Pidiendo el nombre del caso deseado.
     scanf("%s", caso);
@@ -311,7 +332,7 @@ int Manual(int *n, int *m, int *x, int *y, double *z, double *a, double *k)
 
     //Declaración de las variables necesarias.
     FILE *fd;
-    char direccion[50] = "Usuario\\", aux[50];
+    char direccion[50], aux[50];
 
     //Pidiendo datos.
     system("cls");
@@ -321,14 +342,23 @@ int Manual(int *n, int *m, int *x, int *y, double *z, double *a, double *k)
     scanf("%d", m);
 
     //Una vez teniendo los datos de n y m ya podemos saber cuanta memoria solicitar para las matrices.
-    mapa = PedirMemoriaChar(*n, *m);
-    mapad = PedirMemoriadouble(*n, *m);
+    mapa = (char**)malloc(sizeof(char*)*(*n));
+    mapad = (double**)malloc(sizeof(double*)*(*n));
 
     if(mapa == NULL || mapad == NULL)
     {
         printf("Ocurrio un problema con la memoria, intentelo de nuevo.\n");
+        system("pause");
         return 1;
     }
+
+    for(int i = 0; i < *n; i++)
+    {
+        mapa[i] = (char*)malloc(sizeof(char)*(*m));
+        mapad[i] = (double*)malloc(sizeof(double)*(*m));
+    }
+
+    //Luego leemos las matrices.
 
     printf("Ahora ingrese su mapa-matriz como usted considere correcto:\n");
     printf("Recuerde, \"X\" significa que hay una parte de Oceano.\n");
@@ -338,7 +368,15 @@ int Manual(int *n, int *m, int *x, int *y, double *z, double *a, double *k)
     {
         for(int j = 0 ; j < *m; j++)
         {
+            mapad[i][j] = -1;
             scanf("%c", &mapa[i][j]);
+            if(mapa[i][j] == 'C' || mapa[i][j] == '#')  //Contamos el número de ciudades para una tarea del presidente.
+                mapad[0][0]++;                          //y lo guardamos en un lugar arbitrario al que podamos acceder
+                                                        //después, por ejemplo en mapad[0][0] luego ya le
+                                                        //devolveremos el -1. Note que los "#" también son ciudades
+                                                        //así que también cuentan para el senso de ciudades.
+                                                        //Son ciudades infectadas.
+
             //En el caso en el que con el "scanf" detectemos un salto de línea, cosa que no queremos en nuestro
             //mapa puesto que nosotros nos encargaremos de imprimir los saltos de línea a mano para no afectar
             // en el algoritmo de búsqueda y expansión, entonces hacemos como que no vale y le restamos a la variable
@@ -360,13 +398,42 @@ int Manual(int *n, int *m, int *x, int *y, double *z, double *a, double *k)
     printf("Ingrese la cantidad K de tiempo que desea analizar el senor presidente:\n");
     scanf("%lf", k);
 
-    //Después de tener todos los datos ahora tenemos que guardar el caso.
-    printf("Ahora ingrese el nombre con el que desea guardar su caso.\nRecuerde que su nombre no tiene que sobrepasar los 30 caracteres y que estará en la carpeta \"Usuario\"");
-    printf("No es necesaria la extension .txt.\n");
-    scanf("%s", aux);
+    //Ahora le pediremos el nombre de su archivo.
 
-    strcat(direccion, aux);
-    strcat(direccion, ".txt");
+    while(1) //Es un ciclo por si es que el usuario introduce un nombre ya existente
+    {
+        system("cls");
+        //Después de tener todos los datos ahora tenemos que guardar el caso.
+        printf("Ahora ingrese el nombre con el que desea guardar su caso.\nRecuerde que su nombre no tiene que sobrepasar los 30 caracteres y que estara en la carpeta \"Usuario\"");
+        printf("\nNo es necesaria la extension .txt.\n");
+
+        char direccion2[50] = "Usuario\\"; //Creamos un string nuevo que nos va a "auxiliar" creandose y destruyendose en cada iteración.
+                                            //Empezamos a "armar" la dirección del archivo.
+        scanf("%s", aux); //Pedimos el nombre del archivo.
+
+        strcat(direccion2, aux);
+        strcat(direccion2, ".txt"); //Le agregamos .txt para que sea de tipo texto.
+
+        strcpy(direccion, direccion2); //Y se la mandamos a direccion para que tenga la dirección de lo que queremos trabajar.
+
+        fd = fopen(direccion2, "r"); //Vemos si existe una dirección como la escrita.
+
+        if(fd != NULL) //Si ya existe esa direción entonces el "fd" no nos devolverá NULL, sino un puntero.
+        {
+            int decision;
+            printf("Ese nombre ya existe, escriba: \n1.Si quiere reemplazar el caso.\n2.Si quiere volver a escribir el caso.\n");
+            scanf("%d", &decision);
+            if(decision == 1)
+            {
+                break;
+            }
+            fclose(fd);
+        }
+        else
+            break;
+    }
+
+    fclose(fd); //Cerramos el archivo para abrir uno nuevo con tipo escritura en la dirección escrita.
 
     fd = fopen(direccion, "w+");
 
@@ -412,9 +479,11 @@ void Variables(int *n, int *m, int *x, int *y, double *z, double *a, double *k, 
     //Primero leemos a "n" y "m" que están dentro del archivo para poder definir el tamaño de nuestra matriz mapa.
     fscanf(fd, "%d%d", n, m);
 
+    //Esta parte es solo para checar problemas.
+
     //Ahora apartamos el espacio de memoria necesario para guardar nuestras matrices.
-    mapa = PedirMemoriaChar(*n, *m);
-    mapad = PedirMemoriadouble(*n, *m);
+    mapa = (char**)malloc(sizeof(char *) * (*n));
+    mapad = (double**)malloc(sizeof(double *) * (*n));
 
     if(mapa == NULL || mapad == NULL)
     {
@@ -422,6 +491,12 @@ void Variables(int *n, int *m, int *x, int *y, double *z, double *a, double *k, 
         *n = -1; //Si el valor de n es -1 significa que hay un error en la memoria.
                  //El hecho de que sea la variable "n" no significa nada, fue arbitrario.
         return;
+    }
+
+    for(int i = 0; i < *n; i++)
+    {
+        mapa[i] = (char *)malloc(sizeof(char) * (*m));
+        mapad[i] = (double *)malloc(sizeof(double) * (*m));
     }
 
     //Una vez apartado el espacio de memoria necesario ya podemos guardar cosas en mapa.
@@ -435,51 +510,17 @@ void Variables(int *n, int *m, int *x, int *y, double *z, double *a, double *k, 
             //mapa puesto que nosotros nos encargaremos de imprimir los saltos de línea a mano para no afectar
             // en el algoritmo de búsqueda, entonces hacemos como que no vale y le restamos a la variable "j"
             //uno para que vuelva a leer esa casilla.
-            if(mapa[i][j] == '\n')
-                j--;
             mapad[i][j] = -1; //Aquí inicializamos "mapad" en -1 por conveniencia para un futuro algoritmo.
             if(mapa[i][j] == 'C' || mapa[i][j] == '#') //Contamos el número de ciudades para una tarea del presidente.
                 mapad[0][0]++;                         //y lo guardamos en un lugar arbitrario al que podamos acceder
-        }                                              //después, por ejemplo en mapad[0][0] luego ya le
-                                                       //devolveremos el -1. Note que los "#" también son ciudades
-    }                                                  //así que también cuentan para el senso de ciudades.
-                                                       //Son ciudades infectadas.
+            if(mapa[i][j] == '\n')                     //después, por ejemplo en mapad[0][0] luego ya le
+                j--;                                   //devolveremos el -1. Note que los "#" también son ciudades
+        }                                              //así que también cuentan para el senso de ciudades.
+    }                                                  //Son ciudades infectadas.
+
     //Ahora guardamos los demás datos que nos piden.
     fscanf(fd, "%d %d %lf %lf %lf", x, y, z, a, k);
 }
-
-char ** PedirMemoriaChar(int n, int m)
-{
-    char **aux;
-    aux = (char **)malloc(sizeof(char*) * n);
-
-    if(aux == NULL)
-        return aux;
-
-    for(int i = 0; i < n; i++)
-    {
-        aux[i] = (char *)malloc(sizeof(char) * m);
-    }
-
-    return aux;
-}
-
-double ** PedirMemoriadouble(int n, int m)
-{
-    double **aux;
-    aux = (double **)malloc(sizeof(double*) * n);
-
-    if(aux == NULL)
-        return aux;
-
-    for(int i = 0; i < n; i++)
-    {
-        aux[i] = (double *)malloc(sizeof(double) * m);
-    }
-
-    return aux;
-}
-
 
 void ImprimeMapa(int n, int m)
 {
@@ -489,9 +530,11 @@ void ImprimeMapa(int n, int m)
         for(int j = 0; j < m; j++)
         {
             if(mapa[i][j] == '$') //Aquí resolvemos algunos problemas al imprimir el mapa después de el algoritmo
-                mapa[i][j] = '#'; //De expansión zombie, ya que en vez de imprimirse '#' se imprimía '$'.
+            {                     //De expansión zombie, ya que en vez de imprimirse '#' se imprimía '$'.
+                mapa[i][j] = '#';
+            }
 
-                printf("%c", mapa[i][j]);
+            printf("%c", mapa[i][j]);
         }
         printf("\n");
     }
@@ -512,6 +555,10 @@ void ImprimeMapa(int n, int m)
 
 void Expansion_Zombie(int x, int y, int n, int m, double z, double cont, double k, int *sum)
 {
+    //Esta parte solo es para observar errores más facilmente.
+    //printf("\nEntre en las coordenadas %d %d\n", x, y);
+    //printf("\n%lf %d\n", cont, *sum);
+    //ImprimeMapa(n, m);
     //Dentro de esta función haremos que los zombies se "expantan" en un tiempo determinado, este algoritmo se basa en
     //la recursión, la función se manda a llamar a sí misma hasta que se cumpla alguna de las condiciones de la
     //serie de condiciones específicas.
@@ -582,15 +629,89 @@ void Expansion_Presidencial(int x, int y, int n, int m, double a, double cont, P
         mini->y = y;   //Y además se guardan las coordenadas de este mismo.
     }
 
-    //Esta parte solo es para observar errores más facilmente.
-   //printf("\n%lf %lf %d %d\n", mini->m, cont, x, y);
-    //ImprimeMapa(n, m);
-
     mapad[x][y] = cont;
+
+    //Esta parte solo es para observar errores más facilmente.
+    //printf("\n%lf %lf %d %d\n", mini->m, cont, x, y);
+    //ImprimeMapa(n, m);
 
     Expansion_Presidencial(x + 1, y, n, m, a, cont + a, mini);
     Expansion_Presidencial(x, y + 1, n, m, a, cont + a, mini);
     Expansion_Presidencial(x - 1, y, n, m, a, cont + a, mini);
     Expansion_Presidencial(x, y - 1, n, m, a, cont + a, mini);
+
+}
+
+int Aleatorio(int *n, int *m, int *x, int *y, double *z, double *a, double *k)
+{
+    //En esta función todos los datos son aleatorios en un rango que el usuario decida.
+
+    //Declaración de variables necesarias.
+    int r, R;
+
+    //Esta función nos permite general números lo más aleatorio posibles, enteros positivos claro.
+    srand(time(NULL));
+
+    system("cls");
+    printf("Por favor, escriba el limite inferior del randomizador, es decir, cual es el numero minimo que pueden tener las variables:\n(Tiene que ser minimo 1.)\n");
+    scanf("%d", &r);
+    printf("Ahora por favor, escriba el limite superior:\n(Tiene que ser maximo 100)\n");
+    scanf("%d", &R);
+
+    //Asignando números aleatorio a los enteros.
+    *n = r + rand()%(R + 1 - r);
+    *m = r + rand()%(R + 1 - r);
+    *x = r + rand()%(R + 1 - r);
+    *y = r + rand()%(R + 1 - r);
+
+
+    //Asignando números aleatorio a los reales.
+    *z = (r + rand()%(R + 1 - r))/100.0;
+    *a = (r + rand()%(R + 1 - r))/100.0;
+    *k = (r + rand()%(R + 1 - r))/100.0;
+
+
+    //Una vez teniendo los datos de n y m ya podemos saber cuanta memoria solicitar para las matrices.
+    mapa = (char**)malloc(sizeof(char*)*(*n));
+    mapad = (double**)malloc(sizeof(double*)*(*n));
+
+    if(mapa == NULL || mapad == NULL)
+    {
+        printf("Ocurrio un problema con la memoria, intentelo de nuevo.\n");
+        system("pause");
+        return 1;
+    }
+
+    for(int i = 0; i < *n; i++)
+    {
+        mapa[i] = (char*)malloc(sizeof(char)*(*m));
+        mapad[i] = (double*)malloc(sizeof(double)*(*m));
+    }
+
+
+    //Asignando numeros
+    for(int i = 0 ; i < *n; i++)
+    {
+        for(int j = 0 ; j < *m; j++)
+        {
+            int aux = 1 + rand()%(3);
+            switch(aux)
+            {
+            case 1:
+                mapa[i][j] = 'C';
+                break;
+            case 2:
+                mapa[i][j] = '#';
+                break;
+            default:
+                mapa[i][j] = 'X';
+            }
+            mapad[i][j] = -1; 
+            if(mapa[i][j] == 'C' || mapa[i][j] == '#')
+                mapad[0][0]++;
+        }
+    }
+
+    return 0;
 
 }
